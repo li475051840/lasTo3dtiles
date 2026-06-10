@@ -102,3 +102,6 @@ public
 .direnv
 .envrc
 .gitlab-ci-local
+
+# Visual Studio 
+.vs/

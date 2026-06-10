@@ -140,6 +140,22 @@ def run(
                 # NOTE las spec says rgb is 16bits by components
                 # pnts are 8 bits (by default) by component, hence we divide by 256
                 colors = (colors / 256).astype(np.uint8)
+            elif with_rgb and "intensity" in f.header.point_format.dimension_names:
+                # 文件没有 RGB 但包含强度（intensity）字段时，
+                # 按公式 gray = intensity / max_intensity * 255 生成灰度颜色，
+                # 并令 R = G = B = gray，避免点云全部显示为黑色。
+                # 注意：LAS 规范中 intensity 为 uint16（0~65535），
+                # 按批次最大值归一化即可得到合适对比度，无需 color_scale。
+                # color_scale（如 256）仅用于 RGB 的 8/16 位修正，若在此处乘会导致全白。
+                intensity = points["intensity"].astype(np.float32)
+                max_intensity = float(intensity.max())
+                if max_intensity > 0:
+                    gray = intensity / max_intensity * 255.0
+                else:
+                    gray = np.zeros_like(intensity)
+
+                gray = np.clip(gray, 0, 255).astype(np.uint8)
+                colors = np.vstack((gray, gray, gray)).transpose()
             elif with_rgb:
                 colors = np.zeros(coords.shape, dtype=np.uint8)
 
